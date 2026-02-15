@@ -658,6 +658,14 @@ pub trait ListNameSpaceImpl: AsList {
 
         let fraction_s = fraction.cast(&DataType::Float64)?;
         let fraction = fraction_s.f64()?;
+        let validate_fraction = |fraction: f64| {
+            polars_ensure!(
+                (0.0..=1.0).contains(&fraction),
+                ComputeError: "`fraction` should be between 0.0 and 1.0, got {}",
+                fraction
+            );
+            Ok(())
+        };
 
         polars_ensure!(
             ca.len() == fraction.len() || ca.len() == 1 || fraction.len() == 1,
@@ -677,6 +685,7 @@ pub trait ListNameSpaceImpl: AsList {
         let out = match fraction.len() {
             1 => {
                 if let Some(fraction) = fraction.get(0) {
+                    validate_fraction(fraction)?;
                     unsafe {
                         // SAFETY: `sample_n` doesn't change the dtype
                         ca.try_apply_amortized_same_type(|s| {
@@ -694,6 +703,7 @@ pub trait ListNameSpaceImpl: AsList {
             },
             _ => ca.try_zip_and_apply_amortized(fraction, |opt_s, opt_n| match (opt_s, opt_n) {
                 (Some(s), Some(fraction)) => {
+                    validate_fraction(fraction)?;
                     let n = (s.as_ref().len() as f64 * fraction) as usize;
                     s.as_ref()
                         .sample_n(n, with_replacement, shuffle, seed)

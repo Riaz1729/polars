@@ -1109,6 +1109,12 @@ def test_list_sample_fraction_self_broadcast() -> None:
     )
 
 
+@pytest.mark.parametrize("fraction", [-0.1, 1.2])
+def test_list_sample_fraction_out_of_bounds(fraction: float) -> None:
+    with pytest.raises(pl.exceptions.ComputeError, match="between 0.0 and 1.0"):
+        pl.Series("a", [[1, 2], [1, 2]]).list.sample(fraction=fraction)
+
+
 def test_list_shift_unequal_lengths_22018() -> None:
     with pytest.raises(pl.exceptions.ShapeError):
         pl.Series("a", [[1, 2], [1, 2]]).list.shift(pl.Series([1, 2, 3]))
